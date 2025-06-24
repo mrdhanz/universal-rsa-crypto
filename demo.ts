@@ -1,51 +1,67 @@
 import { UniversalRSA } from './src/index';
 
-async function runDemo() {
-  console.log("======================================");
+async function runDemo() { console.log("======================================");
   console.log("   Universal-RSA Library Demo");
+  console.log("   (Encryption & Digital Signatures)");
   console.log("======================================\n");
 
-  // --- Part 1: Key Generation & Export ---
-  console.log("1. Generating a 2048-bit RSA key pair...");
-  const keys = await UniversalRSA.generateKeys(2048);
-  console.log("   ✅ Keys generated.\n");
+  // --- Setup: Generate keys for Alice and Bob ---
+  const aliceKeys = await UniversalRSA.generateKeys(2048);
+  const bobKeys = await UniversalRSA.generateKeys(2048);
 
-  console.log("2. Exporting keys to Base64 strings for storage (e.g., in a .env file)...");
-  const publicKeyB64 = UniversalRSA.exportKey(keys.publicKey);
-  const privateKeyB64 = UniversalRSA.exportKey(keys.privateKey);
-  console.log(`   PUBLIC_KEY_B64="${publicKeyB64}..."`);
-  console.log(`   PRIVATE_KEY_B64="${privateKeyB64}..."\n`);
-
-  // --- Part 2: Encryption ---
-  console.log("3. Creating an encryption engine directly from the public key string...");
-  const encryptionEngine = new UniversalRSA({ publicKey: publicKeyB64 });
+  // --- Scenario 1: Confidentiality (Encryption) ---
+  console.log("--- SCENARIO 1: Bob sends a confidential message to Alice ---\n");
+  const confidentialMessage = { secret: "Meet at the usual place." };
   
-  const mySecretData = {
-    id: 12345,
-    user: 'SundaPrabu',
-    permissions: ['read', 'write'],
-    message: 'Ieu téh pesen rusiah! ᮃᮚᮩᮔ ᮞᮓᮚ ᮃᮜ᮪ᮕᮘᮦᮒ ᮊᮒᮙ᮪ᮕᮤ!',
+  // Bob needs Alice's PUBLIC key to encrypt for her.
+  const bobEncryptionEngine = new UniversalRSA({ publicKey: aliceKeys.publicKey });
+  const ciphertext = bobEncryptionEngine.encrypt(confidentialMessage);
+  console.log("Bob encrypts a message for Alice.");
+  
+  // Alice uses her PRIVATE key to decrypt.
+  const aliceDecryptionEngine = new UniversalRSA({ privateKey: aliceKeys.privateKey });
+  const decryptedMessage = aliceDecryptionEngine.decrypt(ciphertext);
+  console.log("Alice decrypts the message:", decryptedMessage);
+  console.assert(JSON.stringify(confidentialMessage) === JSON.stringify(decryptedMessage));
+  console.log("✅ Confidentiality test passed.\n");
+
+
+  // --- Scenario 2: Authenticity (Digital Signature) ---
+  console.log("--- SCENARIO 2: Alice sends an official, signed announcement ---\n");
+  const announcement = {
+    from: "Alice",
+    documentId: "doc-001",
+    content: "All meetings are cancelled until further notice.",
+    timestamp: new Date().toISOString()
   };
-  console.log("   Original Data:", mySecretData);
+
+  // Alice uses her OWN PRIVATE key to sign the announcement.
+  const aliceSigningEngine = new UniversalRSA({ privateKey: aliceKeys.privateKey });
+  const signature = aliceSigningEngine.sign(announcement);
+  console.log("Alice signs the announcement with her private key.");
+
+  // The announcement and the signature are sent to Bob (they don't need to be encrypted).
+  console.log("The public announcement is sent along with its signature.\n");
+
+  // Bob uses Alice's PUBLIC key to verify the signature.
+  const bobVerificationEngine = new UniversalRSA({ publicKey: aliceKeys.publicKey });
   
-  const ciphertext = encryptionEngine.encrypt(mySecretData);
-  console.log(`   ✅ Data encrypted.\n   Ciphertext: ${ciphertext.substring(0, 60)}...\n`);
+  // Test 1: Verification with correct data
+  const isAuthentic = bobVerificationEngine.verify(announcement, signature);
+  console.log("Bob verifies the original announcement...");
+  console.log("Is the signature authentic?", isAuthentic);
+  console.assert(isAuthentic);
+  console.log("✅ Authenticity test passed.\n");
   
-  // --- Part 3: Decryption ---
-  console.log("4. Creating a decryption engine directly from the private key string...");
-  const decryptionEngine = new UniversalRSA({ privateKey: privateKeyB64 });
+  // Test 2: A malicious actor (Eve) tries to change the message
+  const tamperedAnnouncement = { ...announcement, content: "All meetings are now mandatory." };
+  const isTamperedAuthentic = bobVerificationEngine.verify(tamperedAnnouncement, signature);
+  console.log("Eve tampers with the message and Bob re-verifies...");
+  console.log("Is the tampered signature authentic?", isTamperedAuthentic);
+  console.assert(!isTamperedAuthentic);
+  console.log("✅ Tampering detection test passed.\n");
   
-  const decryptedData = decryptionEngine.decrypt(ciphertext);
-  console.log("   ✅ Data decrypted.\n   Decrypted Data:", decryptedData);
-  
-  // --- Part 4: Verification ---
-  console.log("\n5. Verifying the result...");
-  if (JSON.stringify(mySecretData) === JSON.stringify(decryptedData)) {
-    console.log("   ✅ SUCCESS: The full cycle worked perfectly!");
-  } else {
-    console.log("   ❌ FAILURE: The decrypted data does not match the original.");
-  }
-  console.log("======================================\n");
+  console.log("======================================");
 }
 
 runDemo().catch(console.error);

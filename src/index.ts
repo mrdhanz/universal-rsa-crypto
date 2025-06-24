@@ -1,4 +1,5 @@
 import bcu from 'bigint-crypto-utils';
+import crypto from 'crypto';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -76,6 +77,47 @@ export class UniversalRSA {
     return bigIntToData(decryptedBigInt);
   }
 
+  /**
+   * Creates a digital signature for data using the instance's private key.
+   * This proves the data's origin (authenticity) and integrity.
+   * @param data - The data to sign (string, object, etc.).
+   * @returns A Base64 encoded signature string.
+   */
+  public sign(data: any): string {
+    if (!this.privateKey) {
+      throw new Error("A private key is not loaded. Signing requires a private key.");
+    }
+    
+    const hashBigInt = dataToHashBigInt(data);
+
+    const signatureBigInt = bcu.modPow(hashBigInt, this.privateKey.d, this.privateKey.n);
+    return bigIntToBase64(signatureBigInt);
+  }
+
+  /**
+   * Verifies a digital signature using the instance's public key.
+   * @param data - The original, untampered data.
+   * @param signatureB64 - The Base64 encoded signature to verify.
+   * @returns `true` if the signature is valid, `false` otherwise.
+   */
+  public verify(data: any, signatureB64: string): boolean {
+    if (!this.publicKey) {
+      throw new Error("A public key is not loaded. Verification requires a public key.");
+    }
+
+    try {
+      const expectedHashBigInt = dataToHashBigInt(data);
+
+      const signatureBigInt = base64ToBigInt(signatureB64);
+      const decryptedHashBigInt = bcu.modPow(signatureBigInt, this.publicKey.e, this.publicKey.n);
+
+      return expectedHashBigInt === decryptedHashBigInt;
+    } catch (error) {
+      // If any error occurs during decoding or decryption, the signature is invalid.
+      return false;
+    }
+  }
+
   // --- STATIC METHODS ---
 
   public static async generateKeys(bitLength: number = 2048): Promise<KeyPair> {
@@ -114,6 +156,12 @@ export class UniversalRSA {
 }
 
 // --- INTERNAL HELPER FUNCTIONS ---
+
+function dataToHashBigInt(data: any): bigint {
+  const dataString = typeof data === 'string' ? data : JSON.stringify(data);
+  const hash = crypto.createHash('sha256').update(dataString).digest('hex');
+  return BigInt('0x' + hash);
+}
 
 function dataToBigInt(data: any): bigint {
   const dataString = typeof data === 'string' ? data : JSON.stringify(data);

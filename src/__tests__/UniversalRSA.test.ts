@@ -144,4 +144,59 @@ describe('UniversalRSA', () => {
           expect(() => decryptionEngineWithoutKey.decrypt(ciphertext)).toThrow('A private key is not loaded in this UniversalRSA instance.');
       });
   });
+
+  describe('Digital Signatures', () => {
+    const dataToSign = { message: "This data must not be tampered with." };
+    let signature: string;
+    let signingEngine: UniversalRSA;
+
+    beforeAll(() => {
+        signingEngine = new UniversalRSA({ privateKey: keys.privateKey });
+        signature = signingEngine.sign(dataToSign);
+    });
+    
+    it('should create a valid signature', () => {
+        expect(typeof signature).toBe('string');
+        expect(signature.length).toBeGreaterThan(0);
+    });
+
+    it('should successfully verify a valid signature with the correct data', () => {
+        const verificationEngine = new UniversalRSA({ publicKey: keys.publicKey });
+        const isValid = verificationEngine.verify(dataToSign, signature);
+        expect(isValid).toBe(true);
+    });
+
+    it('should fail to verify with tampered data', () => {
+        const verificationEngine = new UniversalRSA({ publicKey: keys.publicKey });
+        const tamperedData = { message: "This data has been tampered with!" };
+        const isValid = verificationEngine.verify(tamperedData, signature);
+        expect(isValid).toBe(false);
+    });
+
+    it('should fail to verify with a tampered signature', () => {
+        const verificationEngine = new UniversalRSA({ publicKey: keys.publicKey });
+        const firstChar = signature.charAt(0);
+        const replacementChar = firstChar === 'A' ? 'B' : 'A';
+        const tamperedSignature = replacementChar + signature.slice(1);
+
+        const isValid = verificationEngine.verify(dataToSign, tamperedSignature);
+        expect(isValid).toBe(false);
+    });
+
+    it('should fail to verify a malformed signature string', () => {
+        const verificationEngine = new UniversalRSA({ publicKey: keys.publicKey });
+        const isValid = verificationEngine.verify(dataToSign, 'this is not a valid base64 string');
+        expect(isValid).toBe(false);
+    });
+    
+    it('should throw an error when signing without a private key', () => {
+        const rsa = new UniversalRSA({ publicKey: keys.publicKey });
+        expect(() => rsa.sign('test')).toThrow('A private key is not loaded. Signing requires a private key.');
+    });
+
+    it('should throw an error when verifying without a public key', () => {
+        const rsa = new UniversalRSA({ privateKey: keys.privateKey });
+        expect(() => rsa.verify('test', 'sig')).toThrow('A public key is not loaded. Verification requires a public key.');
+    });
+  });
 });
