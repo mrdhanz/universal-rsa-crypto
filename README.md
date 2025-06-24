@@ -4,6 +4,7 @@
 ![Unit Test](https://github.com/mrdhanz/universal-rsa-crypto/actions/workflows/node.js.yml/badge.svg)
 [![codecov](https://codecov.io/gh/mrdhanz/universal-rsa-crypto/graph/badge.svg?token=1VX6757DYG)](https://codecov.io/gh/mrdhanz/universal-rsa-crypto)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/mrdhanz/universal-rsa-crypto/blob/master/LICENSE)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fmrdhanz%2Funiversal-rsa-crypto.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fmrdhanz%2Funiversal-rsa-crypto?ref=badge_shield)
 
 A simple, modern, and secure RSA library for Node.js that provides both **encryption** (for confidentiality) and **digital signatures** (for authenticity and integrity).
 
@@ -106,3 +107,6 @@ For more detailed documentation, tutorials, and security best practices, please 
 ## License
 
 [MIT](LICENSE)
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fmrdhanz%2Funiversal-rsa-crypto.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fmrdhanz%2Funiversal-rsa-crypto?ref=badge_large)
