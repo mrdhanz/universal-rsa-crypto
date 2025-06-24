@@ -1,7 +1,7 @@
 # Universal RSA Crypto
 
 [![NPM Version](https://img.shields.io/npm/v/universal-rsa-crypto.svg)](https://www.npmjs.com/package/universal-rsa-crypto)
-[![License](https://img.shields.io/npm/l/universal-rsa-crypto.svg)](https://github.com/mrdhanz/universal-rsa-crypto/blob/main/LICENSE)
+[![License](https://img.shields.io/npm/l/universal-rsa-crypto.svg)](https://github.com/mrdhanz/universal-rsa-crypto/blob/master/LICENSE)
 
 A simple, modern, and secure RSA encryption library for Node.js, written in TypeScript. It can encrypt any string or JSON data and provides easy-to-use key management for storage in `.env` files or configuration managers.
 
