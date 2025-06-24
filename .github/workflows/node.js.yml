@@ -32,9 +32,9 @@ jobs:
       run: npm run build --if-present
       # Runs the 'build' script if defined in package.json.
 
-    - name: Run tests
-      run: npm test
-      # Executes your project's tests.
+    - name: Run tests and generate coverage
+      run: npm test -- --coverage # Executes your project's tests and generates coverage reports.
+      # Note: "-- --coverage" passes the "--coverage" argument to the underlying test command (e.g., Jest).
 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v5
