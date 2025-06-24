@@ -91,6 +91,20 @@ main();
 
 ---
 
+## 📚 Documentation & Wiki
+
+For more detailed documentation, tutorials, and security best practices, please visit our project Wiki.
+
+*   ➡️ **[Core Concepts: Encryption vs. Signatures](https://github.com/mrdhanz/universal-rsa-crypto/wiki/Core-Concepts:-Encryption-vs.-Signatures)** — Learn when and why to use each cryptographic function.
+*   ➡️ **[Workflow Diagrams](https://github.com/mrdhanz/universal-rsa-crypto/wiki/Workflow-Diagrams)** — Visualize the encryption and signing processes.
+*   ➡️ **[Practical Use Cases & Recipes](https://github.com/mrdhanz/universal-rsa-crypto/wiki/Use-Cases-and-Recipes)** — See how to implement secure tokens, encrypt database fields, and more.
+*   ➡️ **[Security Best Practices](https://github.com/mrdhanz/universal-rsa-crypto/wiki/Security-Best-Practices)** — Important considerations for key management and secure implementation.
+*   ➡️ **[Detailed API Reference](https://github.com/mrdhanz/universal-rsa-crypto/wiki/API-Reference)** — An in-depth look at all classes, methods, and types.
+
+---
+
+---
+
 ## API Reference
 
 ### `new UniversalRSA(keys?)`
