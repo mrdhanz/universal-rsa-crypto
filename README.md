@@ -5,15 +5,17 @@
 [![codecov](https://codecov.io/gh/mrdhanz/universal-rsa-crypto/graph/badge.svg?token=1VX6757DYG)](https://codecov.io/gh/mrdhanz/universal-rsa-crypto)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/mrdhanz/universal-rsa-crypto/blob/master/LICENSE)
 
-A simple, modern, and secure RSA encryption library for Node.js, written in TypeScript. It can encrypt any string or JSON data and provides easy-to-use key management for storage in `.env` files or configuration managers.
+A simple, modern, and secure RSA library for Node.js that provides both **encryption** (for confidentiality) and **digital signatures** (for authenticity and integrity).
+
+Built with TypeScript, it can handle any string or JSON data and provides easy-to-use key management for storage in `.env` files or configuration managers.
 
 ## Features
 
 - **Class-Based:** Intuitive, object-oriented design.
 - **Type-Safe:** Fully written in TypeScript with included type definitions.
-- **Universal Data Support:** Encrypts any string or JSON-serializable object.
+- **Dual-Function:** Provides both encryption (RSA) and digital signatures (RSA-SHA256).
+- **Universal Data Support:** Works with any string or JSON-serializable object.
 - **Easy Key Management:** Generate, export, and import keys as Base64 strings, perfect for `.env` files.
-- **Secure:** Built on the standard RSA algorithm using large prime numbers.
 
 ## Installation
 
@@ -21,70 +23,137 @@ A simple, modern, and secure RSA encryption library for Node.js, written in Type
 npm install universal-rsa-crypto
 ```
 
-## Usage
+## Quick Start
 
-Here's a complete example of generating keys, storing them, and performing an encryption/decryption cycle.
+This example demonstrates a complete, secure communication cycle between two parties, Alice and Bob.
 
 ```typescript
 import { UniversalRSA } from 'universal-rsa-crypto';
 
 async function main() {
-  // 1. Generate keys once and store them securely
-  const keys = await UniversalRSA.generateKeys();
-  const publicKeyB64 = UniversalRSA.exportKey(keys.publicKey);
-  const privateKeyB64 = UniversalRSA.exportKey(keys.privateKey);
+  // === 1. SETUP: Key Generation ===
+  // Alice and Bob both generate their own key pairs. They will share their public keys.
+  const aliceKeys = await UniversalRSA.generateKeys();
+  const bobKeys = await UniversalRSA.generateKeys();
 
-  // In your app, you would save these strings to a .env file or secrets manager
-  // For example: PUBLIC_KEY=publicKeyB64
-  //            PRIVATE_KEY=privateKeyB64
-  console.log('Public Key (for sharing):', publicKeyB64);
-  console.log('Private Key (keep secret!):', privateKeyB64);
+  // For sharing/storage, they export their public keys to strings.
+  const alicePublicKeyB64 = UniversalRSA.exportKey(aliceKeys.publicKey);
+  const bobPublicKeyB64 = UniversalRSA.exportKey(bobKeys.publicKey);
 
-  // 2. Encrypt data using the public key
-  // Create an engine by passing the public key string directly to the constructor
-  const encryptionEngine = new UniversalRSA({ publicKey: publicKeyB64 });
 
-  const myData = {
-    message: 'This is a secret!',
-    user: 'Alice'
+  // === 2. SCENARIO: Bob sends a private, signed message to Alice ===
+
+  const message = {
+    from: 'Bob',
+    to: 'Alice',
+    content: 'The eagle has landed.',
+    timestamp: new Date().toISOString(),
   };
 
-  const ciphertext = encryptionEngine.encrypt(myData);
-  console.log('Ciphertext:', ciphertext);
+  // ✍️ Bob signs the message with his OWN PRIVATE key to prove his identity.
+  const bobEngine = new UniversalRSA({ privateKey: bobKeys.privateKey });
+  const signature = bobEngine.sign(message);
+  
+  // 📦 Bob prepares a secure payload containing the data and his signature.
+  const payload = { data: message, signature };
+  
+  // 🔒 Bob encrypts the entire payload using ALICE's PUBLIC key.
+  // Now, only Alice can open it.
+  const alicePublicEngine = new UniversalRSA({ publicKey: alicePublicKeyB64 });
+  const ciphertext = alicePublicEngine.encrypt(payload);
+  
+  console.log('Bob sends the encrypted and signed payload to Alice.');
 
-  // 3. Decrypt data using the private key
-  // Create an engine by passing the private key string directly to the constructor
-  const decryptionEngine = new UniversalRSA({ privateKey: privateKeyB64 });
 
-  const decryptedData = decryptionEngine.decrypt(ciphertext);
-  console.log('Decrypted Data:', decryptedData);
+  // === 3. SCENARIO: Alice receives and verifies the message ===
 
-  // Verification
-  console.assert(JSON.stringify(myData) === JSON.stringify(decryptedData));
+  // 🔓 Alice decrypts the payload with her OWN PRIVATE key.
+  const alicePrivateEngine = new UniversalRSA({ privateKey: aliceKeys.privateKey });
+  const receivedPayload = alicePrivateEngine.decrypt(ciphertext);
+
+  console.log('Alice decrypted the payload:', receivedPayload);
+  
+  // ✅ Alice verifies the signature using BOB's PUBLIC key to confirm it's authentic.
+  const bobPublicEngine = new UniversalRSA({ publicKey: bobPublicKeyB64 });
+  const isAuthentic = bobPublicEngine.verify(
+    receivedPayload.data,
+    receivedPayload.signature
+  );
+  
+  console.log('Is the message authentic and untampered?', isAuthentic);
+  
+  if (isAuthentic) {
+    console.log('✅ Success! The message is both confidential and authentic.');
+  } else {
+    console.log('❌ DANGER! The message could not be verified.');
+  }
 }
 
 main();
 ```
 
-## API
+---
+
+## API Reference
 
 ### `new UniversalRSA(keys?)`
+
 Creates a new RSA engine instance. The constructor is "smart" and can accept key objects or their Base64 string representations.
 
-- `keys.publicKey` (optional): `PublicKey` object or `string`
-- `keys.privateKey` (optional): `PrivateKey` object or `string`
+- `keys` (optional): `object`
+  - `keys.publicKey` (optional): A `PublicKey` object or its Base64 `string` representation.
+  - `keys.privateKey` (optional): A `PrivateKey` object or its Base64 `string` representation.
+
+**Example:**
+```typescript
+// Initialize with a public key string from a .env file
+const encryptionEngine = new UniversalRSA({ publicKey: process.env.PUBLIC_KEY });
+
+// Initialize with a full key pair object
+const fullEngine = new UniversalRSA(keys);
+```
 
 ### Instance Methods
 
-- `encrypt(data: any): string`: Encrypts data using the instance's public key.
-- `decrypt(ciphertext: string): any`: Decrypts ciphertext using the instance's private key.
+These methods require an engine to be instantiated with the appropriate key(s).
+
+#### `encrypt(data: any): string`
+Encrypts data using the instance's **public key**.
+- **Throws**: If a public key is not loaded.
+
+#### `decrypt(ciphertext: string): any`
+Decrypts ciphertext using the instance's **private key**.
+- **Throws**: If a private key is not loaded.
+
+#### `sign(data: any): string`
+Creates a digital signature (RSA-SHA256) using the instance's **private key**. This proves the data's origin and that it has not been tampered with.
+- **Throws**: If a private key is not loaded.
+
+#### `verify(data: any, signature: string): boolean`
+Verifies a digital signature using the instance's **public key**.
+- **Returns**: `true` if the signature is valid, `false` otherwise.
+- **Throws**: If a public key is not loaded.
+
+---
 
 ### Static Methods
 
-- `UniversalRSA.generateKeys(bitLength?): Promise<KeyPair>`: Generates a new `PublicKey` and `PrivateKey` pair.
-- `UniversalRSA.exportKey(key): string`: Exports a `PublicKey` or `PrivateKey` object to a Base64 string.
-- `UniversalRSA.importPublicKey(b64Key): PublicKey`: Imports a `PublicKey` from a Base64 string.
-- `UniversalRSA.importPrivateKey(b64Key): PrivateKey`: Imports a `PrivateKey` from a Base64 string.
+These utility methods can be called directly on the `UniversalRSA` class without creating an instance.
+
+#### `UniversalRSA.generateKeys(bitLength?): Promise<KeyPair>`
+Generates a new RSA `PublicKey` and `PrivateKey` pair.
+- **`bitLength`** (optional): The desired key security level in bits. Default is `2048`.
+
+#### `UniversalRSA.exportKey(key): string`
+Exports a `PublicKey` or `PrivateKey` object to a transport-safe Base64 string.
+
+#### `UniversalRSA.importPublicKey(b64Key): PublicKey`
+Imports a `PublicKey` from its Base64 string representation.
+
+#### `UniversalRSA.importPrivateKey(b64Key): PrivateKey`
+Imports a `PrivateKey` from its Base64 string representation.
+
+---
 
 ## License
 
