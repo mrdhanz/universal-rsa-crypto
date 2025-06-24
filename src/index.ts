@@ -123,7 +123,13 @@ function dataToBigInt(data: any): bigint {
 }
 
 function bigIntToData(bigIntValue: bigint): any {
+  // Add a guard clause to handle the empty string edge case correctly.
+  if (bigIntValue === 0n) {
+    return '';
+  }
+
   const hex = bigIntValue.toString(16);
+  // Pad with a leading zero if the hex string has an odd length
   const paddedHex = hex.length % 2 !== 0 ? '0' + hex : hex;
   const buffer = Buffer.from(paddedHex, 'hex');
   const dataString = buffer.toString('utf8');
