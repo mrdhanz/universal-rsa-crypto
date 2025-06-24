@@ -54,13 +54,10 @@ async function main() {
   const bobEngine = new UniversalRSA({ privateKey: bobKeys.privateKey });
   const signature = bobEngine.sign(message);
   
-  // 📦 Bob prepares a secure payload containing the data and his signature.
-  const payload = { data: message, signature };
-  
   // 🔒 Bob encrypts the entire payload using ALICE's PUBLIC key.
   // Now, only Alice can open it.
   const alicePublicEngine = new UniversalRSA({ publicKey: alicePublicKeyB64 });
-  const ciphertext = alicePublicEngine.encrypt(payload);
+  const ciphertext = alicePublicEngine.encrypt(message);
   
   console.log('Bob sends the encrypted and signed payload to Alice.');
 
@@ -76,8 +73,8 @@ async function main() {
   // ✅ Alice verifies the signature using BOB's PUBLIC key to confirm it's authentic.
   const bobPublicEngine = new UniversalRSA({ publicKey: bobPublicKeyB64 });
   const isAuthentic = bobPublicEngine.verify(
-    receivedPayload.data,
-    receivedPayload.signature
+    receivedPayload,
+    signature
   );
   
   console.log('Is the message authentic and untampered?', isAuthentic);

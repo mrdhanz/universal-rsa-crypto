@@ -1,67 +1,59 @@
 import { UniversalRSA } from './src/index';
 
-async function runDemo() { console.log("======================================");
-  console.log("   Universal-RSA Library Demo");
-  console.log("   (Encryption & Digital Signatures)");
-  console.log("======================================\n");
+async function main() {
+  // === 1. SETUP: Key Generation ===
+  // Alice and Bob both generate their own key pairs. They will share their public keys.
+  const aliceKeys = await UniversalRSA.generateKeys();
+  const bobKeys = await UniversalRSA.generateKeys();
 
-  // --- Setup: Generate keys for Alice and Bob ---
-  const aliceKeys = await UniversalRSA.generateKeys(2048);
-  const bobKeys = await UniversalRSA.generateKeys(2048);
-
-  // --- Scenario 1: Confidentiality (Encryption) ---
-  console.log("--- SCENARIO 1: Bob sends a confidential message to Alice ---\n");
-  const confidentialMessage = { secret: "Meet at the usual place." };
-  
-  // Bob needs Alice's PUBLIC key to encrypt for her.
-  const bobEncryptionEngine = new UniversalRSA({ publicKey: aliceKeys.publicKey });
-  const ciphertext = bobEncryptionEngine.encrypt(confidentialMessage);
-  console.log("Bob encrypts a message for Alice.");
-  
-  // Alice uses her PRIVATE key to decrypt.
-  const aliceDecryptionEngine = new UniversalRSA({ privateKey: aliceKeys.privateKey });
-  const decryptedMessage = aliceDecryptionEngine.decrypt(ciphertext);
-  console.log("Alice decrypts the message:", decryptedMessage);
-  console.assert(JSON.stringify(confidentialMessage) === JSON.stringify(decryptedMessage));
-  console.log("✅ Confidentiality test passed.\n");
+  // For sharing/storage, they export their public keys to strings.
+  const alicePublicKeyB64 = UniversalRSA.exportKey(aliceKeys.publicKey);
+  const bobPublicKeyB64 = UniversalRSA.exportKey(bobKeys.publicKey);
 
 
-  // --- Scenario 2: Authenticity (Digital Signature) ---
-  console.log("--- SCENARIO 2: Alice sends an official, signed announcement ---\n");
-  const announcement = {
-    from: "Alice",
-    documentId: "doc-001",
-    content: "All meetings are cancelled until further notice.",
-    timestamp: new Date().toISOString()
+  // === 2. SCENARIO: Bob sends a private, signed message to Alice ===
+
+  const message = {
+    from: 'Bob',
+    to: 'Alice',
+    content: 'The eagle has landed.',
+    timestamp: new Date().toISOString(),
   };
 
-  // Alice uses her OWN PRIVATE key to sign the announcement.
-  const aliceSigningEngine = new UniversalRSA({ privateKey: aliceKeys.privateKey });
-  const signature = aliceSigningEngine.sign(announcement);
-  console.log("Alice signs the announcement with her private key.");
+  // ✍️ Bob signs the message with his OWN PRIVATE key to prove his identity.
+  const bobEngine = new UniversalRSA({ privateKey: bobKeys.privateKey });
+  const signature = bobEngine.sign(message);
+  
+  // 🔒 Bob encrypts the entire payload using ALICE's PUBLIC key.
+  // Now, only Alice can open it.
+  const alicePublicEngine = new UniversalRSA({ publicKey: alicePublicKeyB64 });
+  const ciphertext = alicePublicEngine.encrypt(message);
+  
+  console.log('Bob sends the encrypted and signed payload to Alice.');
 
-  // The announcement and the signature are sent to Bob (they don't need to be encrypted).
-  console.log("The public announcement is sent along with its signature.\n");
 
-  // Bob uses Alice's PUBLIC key to verify the signature.
-  const bobVerificationEngine = new UniversalRSA({ publicKey: aliceKeys.publicKey });
+  // === 3. SCENARIO: Alice receives and verifies the message ===
+
+  // 🔓 Alice decrypts the payload with her OWN PRIVATE key.
+  const alicePrivateEngine = new UniversalRSA({ privateKey: aliceKeys.privateKey });
+  const receivedPayload = alicePrivateEngine.decrypt(ciphertext);
+
+  console.log('Alice decrypted the payload:', receivedPayload);
   
-  // Test 1: Verification with correct data
-  const isAuthentic = bobVerificationEngine.verify(announcement, signature);
-  console.log("Bob verifies the original announcement...");
-  console.log("Is the signature authentic?", isAuthentic);
-  console.assert(isAuthentic);
-  console.log("✅ Authenticity test passed.\n");
+  // ✅ Alice verifies the signature using BOB's PUBLIC key to confirm it's authentic.
+  const bobPublicEngine = new UniversalRSA({ publicKey: bobPublicKeyB64 });
+  const isAuthentic = bobPublicEngine.verify(
+    receivedPayload,
+    signature
+  );
   
-  // Test 2: A malicious actor (Eve) tries to change the message
-  const tamperedAnnouncement = { ...announcement, content: "All meetings are now mandatory." };
-  const isTamperedAuthentic = bobVerificationEngine.verify(tamperedAnnouncement, signature);
-  console.log("Eve tampers with the message and Bob re-verifies...");
-  console.log("Is the tampered signature authentic?", isTamperedAuthentic);
-  console.assert(!isTamperedAuthentic);
-  console.log("✅ Tampering detection test passed.\n");
+  console.log('Is the message authentic and untampered?', isAuthentic);
   
-  console.log("======================================");
+  if (isAuthentic) {
+    console.log('✅ Success! The message is both confidential and authentic.');
+  } else {
+    console.log('❌ DANGER! The message could not be verified.');
+  }
 }
 
-runDemo().catch(console.error);
+main();
