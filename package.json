@@ -23,7 +23,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mrdhanz/universal-rsa-crypto.git"
+    "url": "git+https://github.com/mrdhanz/universal-rsa-crypto.git"
   },
   "dependencies": {
     "bigint-crypto-utils": "^3.3.0"
